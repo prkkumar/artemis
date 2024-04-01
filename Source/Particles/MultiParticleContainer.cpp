@@ -120,7 +120,7 @@ MultiParticleContainer::MultiParticleContainer (AmrCore* amr_core)
     pc_tmp = std::make_unique<PhysicalParticleContainer>(amr_core);
 
     // Setup particle collisions
-    collisionhandler = std::make_unique<CollisionHandler>(this);
+    //collisionhandler = std::make_unique<CollisionHandler>(this);
 
 }
 
@@ -933,12 +933,14 @@ MultiParticleContainer::doFieldIonization (int lev,
     }
 }
 
+/*
 void
 MultiParticleContainer::doCollisions ( Real cur_time, amrex::Real dt )
 {
     WARPX_PROFILE("MultiParticleContainer::doCollisions()");
     collisionhandler->doCollisions(cur_time, dt, this);
 }
+*/
 
 void MultiParticleContainer::doResampling (const int timestep)
 {

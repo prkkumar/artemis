@@ -172,7 +172,7 @@ public:
                             const amrex::MultiFab& Ex, const amrex::MultiFab& Ey, const amrex::MultiFab& Ez,
                             const amrex::MultiFab& Bx, const amrex::MultiFab& By, const amrex::MultiFab& Bz);
 
-    void doCollisions (amrex::Real cur_time, amrex::Real dt);
+    //void doCollisions (amrex::Real cur_time, amrex::Real dt);
 
     /**
     * \brief This function loops over all species and performs resampling if appropriate.
@@ -357,7 +357,7 @@ protected:
 
     std::vector<std::string> lasers_names;
 
-    std::unique_ptr<CollisionHandler> collisionhandler;
+    //std::unique_ptr<CollisionHandler> collisionhandler;
 
     //! instead of depositing (current, charge) on the finest patch level, deposit to the coarsest grid
     std::vector<bool> m_deposit_on_main_grid;
