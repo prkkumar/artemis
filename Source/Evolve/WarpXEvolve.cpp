@@ -184,7 +184,7 @@ WarpX::Evolve (int numsteps)
         // ionization, Coulomb collisions, QED
         doFieldIonization();
         ExecutePythonCallback("beforecollisions");
-        mypc->doCollisions( cur_time, dt[0] );
+        //mypc->doCollisions( cur_time, dt[0] );
         ExecutePythonCallback("aftercollisions");
 #ifdef WARPX_QED
         doQEDEvents();
