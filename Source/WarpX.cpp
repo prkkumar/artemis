@@ -388,6 +388,9 @@ WarpX::WarpX ()
     Efield_fp.resize(nlevs_max);
     Bfield_fp.resize(nlevs_max);
     Bfield_sc_fp.resize(nlevs_max);
+#ifdef WARPX_FERROE
+    polarization_fp.resize(nlevs_max);
+#endif
 #ifdef WARPX_MAG_LLG
     Mfield_fp.resize(nlevs_max);
     Hfield_fp.resize(nlevs_max);
@@ -441,6 +444,9 @@ WarpX::WarpX ()
     current_cp.resize(nlevs_max);
     Efield_cp.resize(nlevs_max);
     Bfield_cp.resize(nlevs_max);
+#ifdef WARPX_FERROE
+    polarization_cp.resize(nlevs_max);
+#endif
 #ifdef WARPX_MAG_LLG
     Mfield_cp.resize(nlevs_max);
     Hfield_cp.resize(nlevs_max);
@@ -485,6 +491,10 @@ WarpX::WarpX ()
 
     if (yee_coupled_solver_algo == CoupledYeeSolver::MaxwellLondon) {
         m_london = std::make_unique<London>();
+    }
+
+    if (yee_coupled_solver_algo == CoupledYeeSolver::MaxwellFerroE) {
+        m_ferroe = std::make_unique<FerroE>();
     }
 
     // Set default values for particle and cell weights for costs update;
@@ -1991,6 +2001,9 @@ WarpX::ClearLevel (int lev)
         Efield_fp [lev][i].reset();
         Bfield_fp [lev][i].reset();
         Bfield_sc_fp [lev][i].reset();
+#ifdef WARPX_FERROE
+    polarization_fp [lev][i].reset();
+#endif
 #ifdef WARPX_MAG_LLG
         Mfield_fp [lev][i].reset();
         Hfield_fp [lev][i].reset();
@@ -2018,6 +2031,9 @@ WarpX::ClearLevel (int lev)
         current_cp[lev][i].reset();
         Efield_cp [lev][i].reset();
         Bfield_cp [lev][i].reset();
+#ifdef WARPX_FERROE
+    polarization_cp [lev][i].reset();
+#endif
 #ifdef WARPX_MAG_LLG
         Mfield_cp [lev][i].reset();
         Hfield_cp [lev][i].reset();
@@ -2317,6 +2333,10 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
     AllocInitMultiFab(current_fp[lev][0], amrex::convert(ba, jx_nodal_flag), dm, ncomps, ngJ, tag("current_fp[x]"), 0.0_rt);
     AllocInitMultiFab(current_fp[lev][1], amrex::convert(ba, jy_nodal_flag), dm, ncomps, ngJ, tag("current_fp[y]"), 0.0_rt);
     AllocInitMultiFab(current_fp[lev][2], amrex::convert(ba, jz_nodal_flag), dm, ncomps, ngJ, tag("current_fp[z]"), 0.0_rt);
+
+    AllocInitMultiFab(polarization_fp[lev][0], amrex::convert(ba, jx_nodal_flag), dm, 2, ngJ, tag("polarization_fp[x]"), 0.0_rt);
+    AllocInitMultiFab(polarization_fp[lev][1], amrex::convert(ba, jy_nodal_flag), dm, 2, ngJ, tag("polarization_fp[y]"), 0.0_rt);
+    AllocInitMultiFab(polarization_fp[lev][2], amrex::convert(ba, jz_nodal_flag), dm, 2, ngJ, tag("polarization_fp[z]"), 0.0_rt);
 
     // Match external field MultiFabs to fine patch
     if (add_external_B_field) {
@@ -2655,6 +2675,11 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
         AllocInitMultiFab(current_cp[lev][0], amrex::convert(cba, jx_nodal_flag), dm, ncomps, ngJ, tag("current_cp[x]"), 0.0_rt);
         AllocInitMultiFab(current_cp[lev][1], amrex::convert(cba, jy_nodal_flag), dm, ncomps, ngJ, tag("current_cp[y]"), 0.0_rt);
         AllocInitMultiFab(current_cp[lev][2], amrex::convert(cba, jz_nodal_flag), dm, ncomps, ngJ, tag("current_cp[z]"), 0.0_rt);
+
+        // Create the MultiFabs for the current
+        AllocInitMultiFab(polarization_cp[lev][0], amrex::convert(cba, jx_nodal_flag), dm, 2, ngJ, tag("polarization_cp[x]"), 0.0_rt);
+        AllocInitMultiFab(polarization_cp[lev][1], amrex::convert(cba, jy_nodal_flag), dm, 2, ngJ, tag("polarization_cp[y]"), 0.0_rt);
+        AllocInitMultiFab(polarization_cp[lev][2], amrex::convert(cba, jz_nodal_flag), dm, 2, ngJ, tag("polarization_cp[z]"), 0.0_rt);
 
         if (deposit_charge) {
             // For the multi-J algorithm we can allocate only one rho component (no distinction between old and new)

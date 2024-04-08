@@ -426,6 +426,11 @@ WarpX::InitData ()
         m_london->InitData();
     }
 
+    if (WarpX::yee_coupled_solver_algo == CoupledYeeSolver::MaxwellFerroE) {
+        amrex::Print() << " calling ferroe \n";
+        m_ferroe->InitData();
+    }
+
     if (ParallelDescriptor::IOProcessor()) {
         std::cout << "\nGrids Summary:\n";
         printGridSummary(std::cout, 0, finestLevel());
