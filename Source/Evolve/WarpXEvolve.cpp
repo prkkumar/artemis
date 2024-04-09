@@ -449,7 +449,7 @@ WarpX::OneStep_nosub (Real cur_time)
         // fill boundary here
     }
     if (WarpX::yee_coupled_solver_algo == CoupledYeeSolver::MaxwellFerroE) {
-        amrex::Print() << " in evolve ferroe j\n";
+        amrex::Print() << " in evolve ferroelectric j\n";
         m_ferroe->EvolveFerroEJ(dt[0]); // J^(n-1/2) to J^(n+1/2) using E^(n)
         EvolveB(0.5_rt * dt[0], DtType::FirstHalf); // We now have B^{n+1/2}
         FillBoundaryJ(guard_cells.ng_alloc_EB);

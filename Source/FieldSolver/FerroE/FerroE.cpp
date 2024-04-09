@@ -68,7 +68,7 @@ FerroE::InitData()
 void
 FerroE::EvolveFerroEJ (amrex::Real dt)
 {
-    amrex::Print() << " evolve FerroE J using E\n";
+    amrex::Print() << " evolve Ferroelectric J using E\n";
     auto & warpx = WarpX::GetInstance();
     const int lev = 0;
 
