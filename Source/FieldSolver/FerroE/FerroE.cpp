@@ -68,7 +68,6 @@ FerroE::InitData()
 void
 FerroE::EvolveFerroEJ (amrex::Real dt)
 {
-    amrex::Print() << " evolve Ferroelectric J using E\n";
     auto & warpx = WarpX::GetInstance();
     const int lev = 0;
 
@@ -82,6 +81,8 @@ FerroE::EvolveFerroEJ (amrex::Real dt)
     amrex::MultiFab * Pz = warpx.get_pointer_polarization_fp(lev, 2);
 
     EvolveP(dt, mu, gamma);
+
+    amrex::Print() << " evolve Ferroelectric J using P\n";
 
     // J_tot  = free electric current + polarization current (dP/dt)
 
