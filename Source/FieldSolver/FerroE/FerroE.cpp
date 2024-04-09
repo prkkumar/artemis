@@ -164,51 +164,138 @@ FerroE::InitializeFerroelectricMultiFabUsingParser (
 
 // Define the function representing the system of first-order ODEs
 AMREX_GPU_DEVICE
-void dPdt(amrex::Real P[2], amrex::Real dPdt_result[2], const amrex::Real mu, const amrex::Real gamma, amrex::Real E)
+void dPdt(amrex::Real P[2], amrex::Real dPdt_result[2], const amrex::Real mu, const amrex::Real gamma, amrex::Real E_eff)
 {
-    dPdt_result[0] = P[1];
-    dPdt_result[1] = E / mu - gamma * P[1] / mu;
+     dPdt_result[0] = P[1];
+     dPdt_result[1] = E_eff / mu - gamma * P[1] / mu;
 }
 
 // Forward Euler time integrator
-void forwardEuler(amrex::MultiFab& P, const amrex::Real dt, const amrex::Real mu, const amrex::Real gamma, amrex::MultiFab& E)
+AMREX_GPU_DEVICE
+void forwardEuler(amrex::Real P[2], const amrex::Real dt, const amrex::Real mu, const amrex::Real gamma, amrex::Real E_eff)
 {
 
-    for (amrex::MFIter mfi(P); mfi.isValid(); ++mfi)
-    {
-        const amrex::Box& bx = mfi.tilebox();
-        const auto& P_arr = P.array(mfi);
-        const auto& E_arr = E.array(mfi);
-
-        amrex::ParallelFor (bx,
-            [=] AMREX_GPU_DEVICE (int i, int j, int k) {
-	    amrex::Real P_tmp[2] = {P_arr(i,j,k,0), P_arr(i,j,k,1)};
-            amrex::Real res_tmp[2]; // Temporary array to hold the result
-            dPdt(P_tmp, res_tmp, mu, gamma, E_arr(i,j,k)); // Call dPdt with the temporary arrays
-            for (int n = 0; n < 2; ++n) P_arr(i,j,k,n) += dt * res_tmp[n]; ;
-        });
-    }
+     amrex::Real res_tmp[2]; // Temporary array to hold the result
+     dPdt(P, res_tmp, mu, gamma, E_eff); // Call dPdt with the temporary arrays
+     for (int n = 0; n < 2; ++n) P[n] += dt * res_tmp[n]; ;
 }
 
-
+//Evolve P : Integrate equation of motion using Forward Euler method (To Do : Upgrade to higher order integration schemes)
 void
 FerroE::EvolveP (amrex::Real dt, const amrex::Real mu, const amrex::Real gamma)
 {
-    amrex::Print() << " evolve P \n";
-    auto & warpx = WarpX::GetInstance();
-    const int lev = 0;
+     amrex::Print() << " evolve P \n";
+     auto & warpx = WarpX::GetInstance();
+     int include_Landau = warpx.include_Landau;
+     const int lev = 0;
 
-    //Px, Py, and Pz have 2 components each. Px(i,j,k,0) is Px and Px(i,j,k,1) is dPx/dt and so on..
-    amrex::MultiFab * Px = warpx.get_pointer_polarization_fp(lev, 0);
-    amrex::MultiFab * Py = warpx.get_pointer_polarization_fp(lev, 1);
-    amrex::MultiFab * Pz = warpx.get_pointer_polarization_fp(lev, 2);
+     //Px, Py, and Pz have 2 components each. Px(i,j,k,0) is Px and Px(i,j,k,1) is dPx/dt and so on..
+     amrex::MultiFab * Px = warpx.get_pointer_polarization_fp(lev, 0);
+     amrex::MultiFab * Py = warpx.get_pointer_polarization_fp(lev, 1);
+     amrex::MultiFab * Pz = warpx.get_pointer_polarization_fp(lev, 2);
 
-    amrex::MultiFab * Ex = warpx.get_pointer_Efield_fp(lev, 0);
-    amrex::MultiFab * Ey = warpx.get_pointer_Efield_fp(lev, 1);
-    amrex::MultiFab * Ez = warpx.get_pointer_Efield_fp(lev, 2);
+     amrex::MultiFab * Ex = warpx.get_pointer_Efield_fp(lev, 0);
+     amrex::MultiFab * Ey = warpx.get_pointer_Efield_fp(lev, 1);
+     amrex::MultiFab * Ez = warpx.get_pointer_Efield_fp(lev, 2);
 
-    forwardEuler(*Px, dt, mu, gamma, *Ex);
-    forwardEuler(*Py, dt, mu, gamma, *Ey);
-    forwardEuler(*Pz, dt, mu, gamma, *Ez);
+    for (amrex::MFIter mfi(*Px, amrex::TilingIfNotGPU()); mfi.isValid(); ++mfi) {
+        //Extract field data
+        amrex::Array4<amrex::Real> const& Px_arr = Px->array(mfi);
+        amrex::Array4<amrex::Real> const& Py_arr = Py->array(mfi);
+        amrex::Array4<amrex::Real> const& Pz_arr = Pz->array(mfi);
+        amrex::Array4<amrex::Real> const& Ex_arr = Ex->array(mfi);
+        amrex::Array4<amrex::Real> const& Ey_arr = Ey->array(mfi);
+        amrex::Array4<amrex::Real> const& Ez_arr = Ez->array(mfi);
+	amrex::Array4<amrex::Real> const& fe_arr = m_ferroelectric_mf->array(mfi);
+        amrex::Box const& tpx = mfi.tilebox(Px->ixType().toIntVect());
+        amrex::Box const& tpy = mfi.tilebox(Py->ixType().toIntVect());
+        amrex::Box const& tpz = mfi.tilebox(Pz->ixType().toIntVect());
+
+
+    amrex::ParallelFor(tpx, tpy, tpz,
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+            if (fe_arr(i,j,k)==1 and fe_arr(i+1,j,k)==1) {
+	        
+                amrex::Real Ex_eff = Ex_arr(i,j,k);
+                if (include_Landau == 1){
+                   amrex::Real Ex_Landau = 0.0;
+                   compute_ex_Landau(Ex_Landau, Px_arr(i,j,k,0), Py_arr(i,j,k,0), Pz_arr(i,j,k,0));
+                   Ex_eff += Ex_Landau;
+                }
+
+                amrex::Real Px_tmp[2] = {Px_arr(i,j,k,0), Px_arr(i,j,k,1)};
+                forwardEuler(Px_tmp, dt, mu, gamma, Ex_eff);
+            }
+        },
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+            if (fe_arr(i,j,k)==1 and fe_arr(i,j+1,k)==1) {
+
+                amrex::Real Ey_eff = Ey_arr(i,j,k);
+                if (include_Landau == 1){
+                   amrex::Real Ey_Landau = 0.0;
+                   compute_ey_Landau(Ey_Landau, Px_arr(i,j,k,0), Py_arr(i,j,k,0), Pz_arr(i,j,k,0));
+                   Ey_eff += Ey_Landau;
+                }
+
+	        amrex::Real Py_tmp[2] = {Py_arr(i,j,k,0), Py_arr(i,j,k,1)};
+                forwardEuler(Py_tmp, dt, mu, gamma, Ey_eff);
+            }
+        },
+        [=] AMREX_GPU_DEVICE (int i, int j, int k) {
+            if (fe_arr(i,j,k)==1 and fe_arr(i,j,k+1)==1) {
+
+                amrex::Real Ez_eff = Ez_arr(i,j,k);
+                if (include_Landau == 1){
+                   amrex::Real Ez_Landau = 0.0;
+                   compute_ez_Landau(Ez_Landau, Px_arr(i,j,k,0), Py_arr(i,j,k,0), Pz_arr(i,j,k,0));
+                   Ez_eff += Ez_Landau;
+                }
+
+	        amrex::Real Pz_tmp[2] = {Pz_arr(i,j,k,0), Pz_arr(i,j,k,1)};
+                forwardEuler(Pz_tmp, dt, mu, gamma, Ez_eff);
+            }
+        }
+    );
+    }
 }
 
+//Compute x-component of electric field corresponding to the Landau free energy contribution
+AMREX_GPU_DEVICE
+void FerroE::compute_ex_Landau(amrex::Real Ex_Landau, const amrex::Real Px, const amrex::Real Py, const amrex::Real Pz)
+{
+    Ex_Landau = alpha_1*Px + alpha_11*std::pow(Px,3.) + alpha_111*std::pow(Px,5.)
+               + 2. * alpha_12 * Px * std::pow(Py,2.)
+               + 2. * alpha_12 * Px * std::pow(Pz,2.)
+               + 4. * alpha_112 * std::pow(Px,3.) * (std::pow(Py,2.) + std::pow(Pz,2.))
+               + 2. * alpha_112 * Px * std::pow(Py,4.)
+               + 2. * alpha_112 * Px * std::pow(Pz,4.)
+               + 2. * alpha_123 * Px * std::pow(Py,2.) * std::pow(Pz,2.);
+}
+
+
+//Compute y-component of electric field corresponding to the Landau free energy contribution
+AMREX_GPU_DEVICE
+void FerroE::compute_ey_Landau(amrex::Real Ey_Landau, const amrex::Real Px, const amrex::Real Py, const amrex::Real Pz)
+{
+    Ey_Landau = alpha_1*Py + alpha_11*std::pow(Py,3.) + alpha_111*std::pow(Py,5.)
+               + 2. * alpha_12 * Py * std::pow(Px,2.)
+               + 2. * alpha_12 * Py * std::pow(Pz,2.)
+               + 4. * alpha_112 * std::pow(Py,3.) * (std::pow(Px,2.) + std::pow(Pz,2.))
+               + 2. * alpha_112 * Py * std::pow(Px,4.)
+               + 2. * alpha_112 * Py * std::pow(Pz,4.)
+               + 2. * alpha_123 * Py * std::pow(Px,2.) * std::pow(Pz,2.);
+}
+
+
+//Compute z-component of electric field corresponding to the Landau free energy contribution
+AMREX_GPU_DEVICE
+void FerroE::compute_ez_Landau(amrex::Real Ez_Landau, const amrex::Real Px, const amrex::Real Py, const amrex::Real Pz)
+{
+    Ez_Landau = alpha_1*Pz + alpha_11*std::pow(Pz,3.) + alpha_111*std::pow(Pz,5.)
+               + 2. * alpha_12 * Pz * std::pow(Px,2.)
+               + 2. * alpha_12 * Pz * std::pow(Py,2.)
+               + 4. * alpha_112 * std::pow(Pz,3.) * (std::pow(Px,2.) + std::pow(Py,2.))
+               + 2. * alpha_112 * Pz * std::pow(Px,4.)
+               + 2. * alpha_112 * Pz * std::pow(Py,4.)
+               + 2. * alpha_123 * Pz * std::pow(Px,2.) * std::pow(Py,2.);
+}

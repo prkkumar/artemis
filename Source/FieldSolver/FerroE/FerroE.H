@@ -30,6 +30,10 @@ public:
     void EvolveFerroEJ (amrex::Real dt);
     void EvolveP (amrex::Real dt, const amrex::Real mu, const amrex::Real gamma);
 
+    void compute_ex_Landau(amrex::Real Ex_Landau, const amrex::Real Px, const amrex::Real Py, const amrex::Real Pz); 
+    void compute_ey_Landau(amrex::Real Ey_Landau, const amrex::Real Px, const amrex::Real Py, const amrex::Real Pz);
+    void compute_ez_Landau(amrex::Real Ez_Landau, const amrex::Real Px, const amrex::Real Py, const amrex::Real Pz);
+
     void InitializeFerroelectricMultiFabUsingParser ( amrex::MultiFab *sc_mf,
                                                        amrex::ParserExecutor<3> const& sc_parser, const int lev);
 
@@ -43,6 +47,13 @@ public:
      amrex::GpuArray<int, 3> jy_IndexType;
      /** Gpu Vector with index type of the jz multifab */
      amrex::GpuArray<int, 3> jz_IndexType;
+
+     amrex::Real alpha_1 = -3.7116e7;
+     amrex::Real alpha_11 = -2.097e8;
+     amrex::Real alpha_12 = 7.974e8;
+     amrex::Real alpha_111 = 1.294e9;
+     amrex::Real alpha_112 = -1.95e9;
+     amrex::Real alpha_123 = -2.5e9;
 
 };
 

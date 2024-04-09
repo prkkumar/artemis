@@ -338,6 +338,9 @@ public:
     // turn off the anisotropy coupling term H_anisotropy in H_eff for the LLG updates
     int mag_LLG_anisotropy_coupling = 0;
 #endif
+#ifdef WARPX_FERROE
+    int include_Landau = 0;
+#endif
     //! If true, the current is deposited on a nodal grid and then centered onto a staggered grid
     //! using finite centering of order given by #current_centering_nox, #current_centering_noy,
     //! and #current_centering_noz
