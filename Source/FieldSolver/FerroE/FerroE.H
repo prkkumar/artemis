@@ -29,10 +29,9 @@ public:
     void InitData ();
     void EvolveFerroEJ (amrex::Real dt);
     void EvolveP (amrex::Real dt, const amrex::Real mu, const amrex::Real gamma);
-
-    void compute_ex_Landau(amrex::Real Ex_Landau, const amrex::Real Px, const amrex::Real Py, const amrex::Real Pz); 
-    void compute_ey_Landau(amrex::Real Ey_Landau, const amrex::Real Px, const amrex::Real Py, const amrex::Real Pz);
-    void compute_ez_Landau(amrex::Real Ez_Landau, const amrex::Real Px, const amrex::Real Py, const amrex::Real Pz);
+    amrex::Real compute_ex_Landau(const amrex::Real Px, const amrex::Real Py, const amrex::Real Pz);
+    amrex::Real compute_ey_Landau(const amrex::Real Px, const amrex::Real Py, const amrex::Real Pz);
+    amrex::Real compute_ez_Landau(const amrex::Real Px, const amrex::Real Py, const amrex::Real Pz);
 
     void InitializeFerroelectricMultiFabUsingParser ( amrex::MultiFab *sc_mf,
                                                        amrex::ParserExecutor<3> const& sc_parser, const int lev);

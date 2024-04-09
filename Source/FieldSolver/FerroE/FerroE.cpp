@@ -1,4 +1,5 @@
 #include "FerroE.H"
+#include "Eff_Field_Landau.H"
 #include "FieldSolver/FiniteDifferenceSolver/MacroscopicProperties/MacroscopicProperties.H"
 #include "Utils/WarpXUtil.H"
 #include "WarpX.H"
@@ -180,6 +181,34 @@ void forwardEuler(amrex::Real P[2], const amrex::Real dt, const amrex::Real mu, 
      for (int n = 0; n < 2; ++n) P[n] += dt * res_tmp[n]; ;
 }
 
+// RK4 time integrator
+AMREX_GPU_DEVICE
+void RK4(amrex::Real P[2], amrex::Real dt, amrex::Real mu, amrex::Real gamma, amrex::Real E_eff) {
+    amrex::Real k1[2], k2[2], k3[2], k4[2], tmp[2];
+
+    // Calculate k1
+    dPdt(P, k1, mu, gamma, E_eff);
+
+    // Calculate k2
+    for (int i = 0; i < 2; ++i)
+        tmp[i] = P[i] + 0.5 * dt * k1[i];
+    dPdt(tmp, k2, mu, gamma, E_eff);
+
+    // Calculate k3
+    for (int i = 0; i < 2; ++i)
+        tmp[i] = P[i] + 0.5 * dt * k2[i];
+    dPdt(tmp, k3, mu, gamma, E_eff);
+
+    // Calculate k4
+    for (int i = 0; i < 2; ++i)
+        tmp[i] = P[i] + dt * k3[i];
+    dPdt(tmp, k4, mu, gamma, E_eff);
+
+    // Update P using the weighted sum of k's
+    for (int i = 0; i < 2; ++i)
+        P[i] += dt / 6.0 * (k1[i] + 2.0 * k2[i] + 2.0 * k3[i] + k4[i]);
+}
+
 //Evolve P : Integrate equation of motion using Forward Euler method (To Do : Upgrade to higher order integration schemes)
 void
 FerroE::EvolveP (amrex::Real dt, const amrex::Real mu, const amrex::Real gamma)
@@ -218,84 +247,43 @@ FerroE::EvolveP (amrex::Real dt, const amrex::Real mu, const amrex::Real gamma)
 	        
                 amrex::Real Ex_eff = Ex_arr(i,j,k);
                 if (include_Landau == 1){
-                   amrex::Real Ex_Landau = 0.0;
-                   compute_ex_Landau(Ex_Landau, Px_arr(i,j,k,0), Py_arr(i,j,k,0), Pz_arr(i,j,k,0));
-                   Ex_eff += Ex_Landau;
+                   Ex_eff += compute_ex_Landau(Px_arr(i,j,k,0), Py_arr(i,j,k,0), Pz_arr(i,j,k,0));
                 }
 
                 amrex::Real Px_tmp[2] = {Px_arr(i,j,k,0), Px_arr(i,j,k,1)};
-                forwardEuler(Px_tmp, dt, mu, gamma, Ex_eff);
+                //forwardEuler(Px_tmp, dt, mu, gamma, Ex_eff);
+                RK4(Px_tmp, dt, mu, gamma, Ex_eff);
             }
         },
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
             if (fe_arr(i,j,k)==1 and fe_arr(i,j+1,k)==1) {
 
                 amrex::Real Ey_eff = Ey_arr(i,j,k);
+
                 if (include_Landau == 1){
-                   amrex::Real Ey_Landau = 0.0;
-                   compute_ey_Landau(Ey_Landau, Px_arr(i,j,k,0), Py_arr(i,j,k,0), Pz_arr(i,j,k,0));
-                   Ey_eff += Ey_Landau;
+                   Ey_eff += compute_ey_Landau(Px_arr(i,j,k,0), Py_arr(i,j,k,0), Pz_arr(i,j,k,0));
                 }
 
 	        amrex::Real Py_tmp[2] = {Py_arr(i,j,k,0), Py_arr(i,j,k,1)};
-                forwardEuler(Py_tmp, dt, mu, gamma, Ey_eff);
+                //forwardEuler(Py_tmp, dt, mu, gamma, Ey_eff);
+                RK4(Py_tmp, dt, mu, gamma, Ey_eff);
             }
         },
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
             if (fe_arr(i,j,k)==1 and fe_arr(i,j,k+1)==1) {
 
                 amrex::Real Ez_eff = Ez_arr(i,j,k);
+
                 if (include_Landau == 1){
-                   amrex::Real Ez_Landau = 0.0;
-                   compute_ez_Landau(Ez_Landau, Px_arr(i,j,k,0), Py_arr(i,j,k,0), Pz_arr(i,j,k,0));
-                   Ez_eff += Ez_Landau;
+                   Ez_eff += compute_ez_Landau(Px_arr(i,j,k,0), Py_arr(i,j,k,0), Pz_arr(i,j,k,0));
                 }
 
 	        amrex::Real Pz_tmp[2] = {Pz_arr(i,j,k,0), Pz_arr(i,j,k,1)};
-                forwardEuler(Pz_tmp, dt, mu, gamma, Ez_eff);
+                //forwardEuler(Pz_tmp, dt, mu, gamma, Ez_eff);
+                RK4(Pz_tmp, dt, mu, gamma, Ez_eff);
             }
         }
     );
     }
 }
 
-//Compute x-component of electric field corresponding to the Landau free energy contribution
-AMREX_GPU_DEVICE
-void FerroE::compute_ex_Landau(amrex::Real Ex_Landau, const amrex::Real Px, const amrex::Real Py, const amrex::Real Pz)
-{
-    Ex_Landau = alpha_1*Px + alpha_11*std::pow(Px,3.) + alpha_111*std::pow(Px,5.)
-               + 2. * alpha_12 * Px * std::pow(Py,2.)
-               + 2. * alpha_12 * Px * std::pow(Pz,2.)
-               + 4. * alpha_112 * std::pow(Px,3.) * (std::pow(Py,2.) + std::pow(Pz,2.))
-               + 2. * alpha_112 * Px * std::pow(Py,4.)
-               + 2. * alpha_112 * Px * std::pow(Pz,4.)
-               + 2. * alpha_123 * Px * std::pow(Py,2.) * std::pow(Pz,2.);
-}
-
-
-//Compute y-component of electric field corresponding to the Landau free energy contribution
-AMREX_GPU_DEVICE
-void FerroE::compute_ey_Landau(amrex::Real Ey_Landau, const amrex::Real Px, const amrex::Real Py, const amrex::Real Pz)
-{
-    Ey_Landau = alpha_1*Py + alpha_11*std::pow(Py,3.) + alpha_111*std::pow(Py,5.)
-               + 2. * alpha_12 * Py * std::pow(Px,2.)
-               + 2. * alpha_12 * Py * std::pow(Pz,2.)
-               + 4. * alpha_112 * std::pow(Py,3.) * (std::pow(Px,2.) + std::pow(Pz,2.))
-               + 2. * alpha_112 * Py * std::pow(Px,4.)
-               + 2. * alpha_112 * Py * std::pow(Pz,4.)
-               + 2. * alpha_123 * Py * std::pow(Px,2.) * std::pow(Pz,2.);
-}
-
-
-//Compute z-component of electric field corresponding to the Landau free energy contribution
-AMREX_GPU_DEVICE
-void FerroE::compute_ez_Landau(amrex::Real Ez_Landau, const amrex::Real Px, const amrex::Real Py, const amrex::Real Pz)
-{
-    Ez_Landau = alpha_1*Pz + alpha_11*std::pow(Pz,3.) + alpha_111*std::pow(Pz,5.)
-               + 2. * alpha_12 * Pz * std::pow(Px,2.)
-               + 2. * alpha_12 * Pz * std::pow(Py,2.)
-               + 4. * alpha_112 * std::pow(Pz,3.) * (std::pow(Px,2.) + std::pow(Py,2.))
-               + 2. * alpha_112 * Pz * std::pow(Px,4.)
-               + 2. * alpha_112 * Pz * std::pow(Py,4.)
-               + 2. * alpha_123 * Pz * std::pow(Px,2.) * std::pow(Py,2.);
-}
