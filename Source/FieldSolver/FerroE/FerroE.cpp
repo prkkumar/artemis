@@ -81,9 +81,6 @@ FerroE::EvolveFerroEJ (amrex::Real dt)
     amrex::MultiFab * Py = warpx.get_pointer_polarization_fp(lev, 1);
     amrex::MultiFab * Pz = warpx.get_pointer_polarization_fp(lev, 2);
 
-
-    const amrex::Real mu = 1.35e-18;
-    const amrex::Real gamma = 2.0e-7;
     EvolveP(dt, mu, gamma);
 
     // J_tot  = free electric current + polarization current (dP/dt)
@@ -246,6 +243,7 @@ FerroE::EvolveP (amrex::Real dt, const amrex::Real mu, const amrex::Real gamma)
             if (fe_arr(i,j,k)==1 and fe_arr(i+1,j,k)==1) {
 	        
                 amrex::Real Ex_eff = Ex_arr(i,j,k);
+
                 if (include_Landau == 1){
                    Ex_eff += compute_ex_Landau(Px_arr(i,j,k,0), Py_arr(i,j,k,0), Pz_arr(i,j,k,0));
                 }
