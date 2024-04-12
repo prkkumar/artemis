@@ -92,6 +92,10 @@ Vector<Real> WarpX::H_bias_external_grid(3, 0.0);
 // M could be one 9-comp vector or a vector of vectors
 #endif
 
+#ifdef WARPX_FERROE
+Vector<Real> WarpX::P_external_grid(3, 0.0);
+#endif
+
 std::string WarpX::authors = "";
 std::string WarpX::B_ext_grid_s = "default";
 std::string WarpX::E_ext_grid_s = "default";
@@ -111,6 +115,12 @@ std::string WarpX::H_ext_grid_s = "default";
 std::string WarpX::H_bias_ext_grid_s = "default";
 // "default" sets M to zero but will be overwritten by user defined input file
 #endif
+
+#ifdef WARPX_FERROE
+std::string WarpX::P_ext_grid_s = "default";
+// "default" sets P to zero but will be overwritten by user defined input file
+#endif
+
 bool WarpX::add_external_E_field = false;
 bool WarpX::add_external_B_field = false;
 
@@ -169,6 +179,13 @@ std::string WarpX::str_Hz_ext_grid_function;
 std::string WarpX::str_Hx_bias_ext_grid_function;
 std::string WarpX::str_Hy_bias_ext_grid_function;
 std::string WarpX::str_Hz_bias_ext_grid_function;
+#endif
+
+#ifdef WARPX_FERROE
+// Parser for P_external on the grid
+std::string WarpX::str_Px_ext_grid_function;
+std::string WarpX::str_Py_ext_grid_function;
+std::string WarpX::str_Pz_ext_grid_function;
 #endif
 
 int WarpX::do_moving_window = 0;
@@ -1050,6 +1067,11 @@ WarpX::ReadParameters ()
         pp_warpx.query("mag_LLG_exchange_coupling",mag_LLG_exchange_coupling);
         // turn on the anisotropy coupling term H_anisotropy for H_eff in the LLG equation
         pp_warpx.query("mag_LLG_anisotropy_coupling",mag_LLG_anisotropy_coupling);
+#endif
+
+#ifdef WARPX_FERROE
+        // include Landau free energy contribution to effective field
+        pp_warpx.query("include_Landau", include_Landau);
 #endif
 
 #ifdef WARPX_DIM_RZ

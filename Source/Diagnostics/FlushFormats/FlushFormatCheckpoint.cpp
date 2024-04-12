@@ -96,6 +96,15 @@ FlushFormatCheckpoint::WriteToFile (
                      amrex::MultiFabFileFullPrefix(lev, checkpointname, default_level_prefix, "Hzbias_fp"));
 #endif
 
+#ifdef WARPX_FERROE
+        VisMF::Write(warpx.getpolarization_fp(lev, 0),
+                     amrex::MultiFabFileFullPrefix(lev, checkpointname, default_level_prefix, "px_fp"));
+        VisMF::Write(warpx.getpolarization_fp(lev, 1),
+                     amrex::MultiFabFileFullPrefix(lev, checkpointname, default_level_prefix, "py_fp"));
+        VisMF::Write(warpx.getpolarization_fp(lev, 2),
+                     amrex::MultiFabFileFullPrefix(lev, checkpointname, default_level_prefix, "pz_fp"));
+#endif
+
         if (WarpX::fft_do_time_averaging)
         {
             VisMF::Write(warpx.getEfield_avg_fp(lev, 0),
@@ -167,6 +176,15 @@ FlushFormatCheckpoint::WriteToFile (
                          amrex::MultiFabFileFullPrefix(lev, checkpointname, default_level_prefix, "Hybias_fp"));
             VisMF::Write(warpx.getH_biasfield_cp(lev, 2),
                          amrex::MultiFabFileFullPrefix(lev, checkpointname, default_level_prefix, "Hzbias_fp"));
+#endif
+
+#ifdef WARPX_FERROE
+            VisMF::Write(warpx.getpolarization_cp(lev, 0),
+                         amrex::MultiFabFileFullPrefix(lev, checkpointname, default_level_prefix, "px_cp"));
+            VisMF::Write(warpx.getpolarization_cp(lev, 1),
+                         amrex::MultiFabFileFullPrefix(lev, checkpointname, default_level_prefix, "py_cp"));
+            VisMF::Write(warpx.getpolarization_cp(lev, 2),
+                         amrex::MultiFabFileFullPrefix(lev, checkpointname, default_level_prefix, "pz_cp"));
 #endif
 
             if (WarpX::fft_do_time_averaging)

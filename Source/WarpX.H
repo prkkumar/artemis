@@ -127,6 +127,10 @@ public:
     static amrex::Vector<amrex::Real> H_bias_external_grid;
 #endif
 
+#ifdef WARPX_FERROE
+    static amrex::Vector<amrex::Real> P_external_grid;
+#endif
+
     //! Initialization type for external magnetic field on the grid
     static std::string B_ext_grid_s;
     //! Initialization type for external electric field on the grid
@@ -145,6 +149,11 @@ public:
     static std::string M_ext_grid_s; // added for M;
     static std::string H_bias_ext_grid_s;
 #endif
+
+#ifdef WARPX_FERROE
+    static std::string P_ext_grid_s; // added for P;
+#endif
+
     static int ApplyExcitationInPML;
     //! Whether to apply the effect of an externally-defined electric field
     static bool add_external_E_field;
@@ -213,6 +222,13 @@ public:
     static std::string str_Hz_bias_ext_grid_function;
 #endif
 
+#ifdef WARPX_FERROE
+    // Parser for P_external on the grid
+    static std::string str_Px_ext_grid_function;
+    static std::string str_Py_ext_grid_function;
+    static std::string str_Pz_ext_grid_function;
+#endif
+
     //! User-defined parser to initialize x-component of the magnetic field on the grid
     std::unique_ptr<amrex::Parser> Bxfield_parser;
     //! User-defined parser to initialize y-component of the magnetic field on the grid
@@ -273,6 +289,13 @@ public:
     std::unique_ptr<amrex::Parser> Hx_biasfield_parser;
     std::unique_ptr<amrex::Parser> Hy_biasfield_parser;
     std::unique_ptr<amrex::Parser> Hz_biasfield_parser;
+#endif
+
+#ifdef WARPX_FERROE
+    // Parser for M_external on the grid
+    std::unique_ptr<amrex::Parser> Pxfield_parser;
+    std::unique_ptr<amrex::Parser> Pyfield_parser;
+    std::unique_ptr<amrex::Parser> Pzfield_parser;
 #endif
 
     // Algorithms
