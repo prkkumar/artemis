@@ -151,10 +151,14 @@ WarpX::Evolve (int numsteps)
                 m_london->EvolveLondonJ(-0.5_rt*dt[0]); // J^(n) to J^(n-1/2) using E^(n)
                 FillBoundaryJ(guard_cells.ng_alloc_EB);
             }
+#ifdef WARPX_FERROE
             if (WarpX::yee_coupled_solver_algo == CoupledYeeSolver::MaxwellFerroE) {
+                m_ferroe->EvolveP(-0.5_rt*dt[0]); // P^(n) to P^(n-1/2) using E^(n)
+                FillBoundaryP(guard_cells.ng_alloc_EB);
                 m_ferroe->EvolveFerroEJ(-0.5_rt*dt[0]); // J^(n) to J^(n-1/2) using E^(n)
                 FillBoundaryJ(guard_cells.ng_alloc_EB);
             }
+#endif
             is_synchronized = false;
         } else {
             if (electrostatic_solver_id == ElectrostaticSolverAlgo::None) {
@@ -448,10 +452,14 @@ WarpX::OneStep_nosub (Real cur_time)
         FillBoundaryJ(guard_cells.ng_alloc_EB);
         // fill boundary here
     }
+#endif
+#ifdef WARPX_FERROE
     if (WarpX::yee_coupled_solver_algo == CoupledYeeSolver::MaxwellFerroE) {
         amrex::Print() << " in evolve ferroelectric j\n";
+        m_ferroe->EvolveP(dt[0]); // P^(n-1/2) to P^(n+1/2) using E^(n)
+        FillBoundaryP(guard_cells.ng_alloc_EB);
         m_ferroe->EvolveFerroEJ(dt[0]); // J^(n-1/2) to J^(n+1/2) using E^(n)
-        EvolveB(0.5_rt * dt[0], DtType::FirstHalf); // We now have B^{n+1/2}
+        //EvolveB(0.5_rt * dt[0], DtType::FirstHalf); // We now have B^{n+1/2}
         FillBoundaryJ(guard_cells.ng_alloc_EB);
         // fill boundary here
     }

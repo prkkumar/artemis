@@ -510,9 +510,11 @@ WarpX::WarpX ()
         m_london = std::make_unique<London>();
     }
 
+#ifdef WARPX_FERROE
     if (yee_coupled_solver_algo == CoupledYeeSolver::MaxwellFerroE) {
         m_ferroe = std::make_unique<FerroE>();
     }
+#endif
 
     // Set default values for particle and cell weights for costs update;
     // Default values listed here for the case AMREX_USE_GPU are determined
@@ -2356,9 +2358,11 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
     AllocInitMultiFab(current_fp[lev][1], amrex::convert(ba, jy_nodal_flag), dm, ncomps, ngJ, tag("current_fp[y]"), 0.0_rt);
     AllocInitMultiFab(current_fp[lev][2], amrex::convert(ba, jz_nodal_flag), dm, ncomps, ngJ, tag("current_fp[z]"), 0.0_rt);
 
-    AllocInitMultiFab(polarization_fp[lev][0], amrex::convert(ba, jx_nodal_flag), dm, 2, ngJ, tag("polarization_fp[x]"), 0.0_rt);
-    AllocInitMultiFab(polarization_fp[lev][1], amrex::convert(ba, jy_nodal_flag), dm, 2, ngJ, tag("polarization_fp[y]"), 0.0_rt);
-    AllocInitMultiFab(polarization_fp[lev][2], amrex::convert(ba, jz_nodal_flag), dm, 2, ngJ, tag("polarization_fp[z]"), 0.0_rt);
+#ifdef WARPX_FERROE
+    AllocInitMultiFab(polarization_fp[lev][0], amrex::convert(ba, jx_nodal_flag), dm, 2, ngEB, tag("polarization_fp[x]"), 0.0_rt);
+    AllocInitMultiFab(polarization_fp[lev][1], amrex::convert(ba, jy_nodal_flag), dm, 2, ngEB, tag("polarization_fp[y]"), 0.0_rt);
+    AllocInitMultiFab(polarization_fp[lev][2], amrex::convert(ba, jz_nodal_flag), dm, 2, ngEB, tag("polarization_fp[z]"), 0.0_rt);
+#endif
 
     // Match external field MultiFabs to fine patch
     if (add_external_B_field) {
@@ -2698,10 +2702,12 @@ WarpX::AllocLevelMFs (int lev, const BoxArray& ba, const DistributionMapping& dm
         AllocInitMultiFab(current_cp[lev][1], amrex::convert(cba, jy_nodal_flag), dm, ncomps, ngJ, tag("current_cp[y]"), 0.0_rt);
         AllocInitMultiFab(current_cp[lev][2], amrex::convert(cba, jz_nodal_flag), dm, ncomps, ngJ, tag("current_cp[z]"), 0.0_rt);
 
+#ifdef WARPX_FERROE
         // Create the MultiFabs for the current
-        AllocInitMultiFab(polarization_cp[lev][0], amrex::convert(cba, jx_nodal_flag), dm, 2, ngJ, tag("polarization_cp[x]"), 0.0_rt);
-        AllocInitMultiFab(polarization_cp[lev][1], amrex::convert(cba, jy_nodal_flag), dm, 2, ngJ, tag("polarization_cp[y]"), 0.0_rt);
-        AllocInitMultiFab(polarization_cp[lev][2], amrex::convert(cba, jz_nodal_flag), dm, 2, ngJ, tag("polarization_cp[z]"), 0.0_rt);
+        AllocInitMultiFab(polarization_cp[lev][0], amrex::convert(cba, jx_nodal_flag), dm, 2, ngEB, tag("polarization_cp[x]"), 0.0_rt);
+        AllocInitMultiFab(polarization_cp[lev][1], amrex::convert(cba, jy_nodal_flag), dm, 2, ngEB, tag("polarization_cp[y]"), 0.0_rt);
+        AllocInitMultiFab(polarization_cp[lev][2], amrex::convert(cba, jz_nodal_flag), dm, 2, ngEB, tag("polarization_cp[z]"), 0.0_rt);
+#endif
 
         if (deposit_charge) {
             // For the multi-J algorithm we can allocate only one rho component (no distinction between old and new)

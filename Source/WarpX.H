@@ -39,7 +39,9 @@
 #include "Utils/Parser/IntervalsParser.H"
 #include "Utils/WarpXAlgorithmSelection.H"
 #include "FieldSolver/London/London.H"
+#ifdef WARPX_FERROE
 #include "FieldSolver/FerroE/FerroE.H"
+#endif
 
 #include <AMReX.H>
 #include <AMReX_AmrCore.H>
@@ -101,7 +103,9 @@ public:
     MultiParticleContainer& GetPartContainer () { return *mypc; }
     MacroscopicProperties& GetMacroscopicProperties () { return *m_macroscopic_properties; }
     London& getLondon () { return *m_london; }
+#ifdef WARPX_FERROE
     FerroE& getFerroE () { return *m_ferroe; }
+#endif
     MultiDiagnostics& GetMultiDiags () {return *multi_diags;}
 
     ParticleBoundaryBuffer& GetParticleBoundaryBuffer () { return *m_particle_boundary_buffer; }
@@ -1022,6 +1026,10 @@ public:
     void FillBoundaryM   (amrex::IntVect ng);
     void FillBoundaryH   (amrex::IntVect ng);
 #endif
+#ifdef WARPX_FERROE
+    void FillBoundaryP   (amrex::IntVect ng);
+#endif
+
 
     void FillBoundaryF   (amrex::IntVect ng, std::optional<bool> nodal_sync = std::nullopt);
     void FillBoundaryG   (amrex::IntVect ng, std::optional<bool> nodal_sync = std::nullopt);
@@ -1034,6 +1042,11 @@ public:
     void FillBoundaryM   (int lev, amrex::IntVect ng);
     void FillBoundaryH   (int lev, amrex::IntVect ng);
 #endif
+
+#ifdef WARPX_FERROE
+    void FillBoundaryP   (int lev, amrex::IntVect ng);
+#endif
+
 
     void FillBoundaryF   (int lev, amrex::IntVect ng, std::optional<bool> nodal_sync = std::nullopt);
     void FillBoundaryG   (int lev, amrex::IntVect ng, std::optional<bool> nodal_sync = std::nullopt);
@@ -1418,6 +1431,9 @@ private:
     void FillBoundaryM (const int lev, const PatchType patch_type, const amrex::IntVect ng);
     void FillBoundaryH (const int lev, const PatchType patch_type, const amrex::IntVect ng);
 #endif
+#ifdef WARPX_FERROE
+    void FillBoundaryP (const int lev, const PatchType patch_type, const amrex::IntVect ng);
+#endif
     void FillBoundaryB (const int lev, const PatchType patch_type, const amrex::IntVect ng, std::optional<bool> nodal_sync = std::nullopt);
     void FillBoundaryE (const int lev, const PatchType patch_type, const amrex::IntVect ng, std::optional<bool> nodal_sync = std::nullopt);
     void FillBoundaryF (int lev, PatchType patch_type, amrex::IntVect ng, std::optional<bool> nodal_sync = std::nullopt);
@@ -1779,8 +1795,10 @@ private:
     std::unique_ptr<MacroscopicProperties> m_macroscopic_properties;
     // London solver
     std::unique_ptr<London> m_london;
+#ifdef WARPX_FERROE
     // Ferroelectric solver
     std::unique_ptr<FerroE> m_ferroe;
+#endif
 
 
 

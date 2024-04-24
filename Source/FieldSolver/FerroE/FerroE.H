@@ -28,7 +28,7 @@ public:
     void ReadParameters ();
     void InitData ();
     void EvolveFerroEJ (amrex::Real dt);
-    void EvolveP (amrex::Real dt, const amrex::Real mu, const amrex::Real gamma);
+    void EvolveP (amrex::Real dt);
     amrex::Real compute_ex_Landau(const amrex::Real Px, const amrex::Real Py, const amrex::Real Pz);
     amrex::Real compute_ey_Landau(const amrex::Real Px, const amrex::Real Py, const amrex::Real Pz);
     amrex::Real compute_ez_Landau(const amrex::Real Px, const amrex::Real Py, const amrex::Real Pz);
@@ -39,13 +39,6 @@ public:
     std::string m_str_ferroelectric_function;
     std::unique_ptr<amrex::Parser> m_ferroelectric_parser;
     std::unique_ptr<amrex::MultiFab> m_ferroelectric_mf;
-
-     /** Gpu Vector with index type of the jx multifab */
-     amrex::GpuArray<int, 3> jx_IndexType;
-     /** Gpu Vector with index type of the jy multifab */
-     amrex::GpuArray<int, 3> jy_IndexType;
-     /** Gpu Vector with index type of the jz multifab */
-     amrex::GpuArray<int, 3> jz_IndexType;
 
      //Coefficients in the evolution of the polarization equation
      const amrex::Real mu = 1.35e-18;

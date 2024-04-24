@@ -53,23 +53,16 @@ FerroE::InitData()
 
     InitializeFerroelectricMultiFabUsingParser(m_ferroelectric_mf.get(), m_ferroelectric_parser->compile<3>(), lev);
 
-    amrex::IntVect jx_stag = warpx.get_pointer_current_fp(lev,0)->ixType().toIntVect();
-    amrex::IntVect jy_stag = warpx.get_pointer_current_fp(lev,1)->ixType().toIntVect();
-    amrex::IntVect jz_stag = warpx.get_pointer_current_fp(lev,2)->ixType().toIntVect();
-
-    for ( int idim = 0; idim < AMREX_SPACEDIM; ++idim) {
-        jx_IndexType[idim]      = jx_stag[idim];
-        jy_IndexType[idim]      = jy_stag[idim];
-        jz_IndexType[idim]      = jz_stag[idim];
-    }
-
 }
 
 void
 FerroE::EvolveFerroEJ (amrex::Real dt)
 {
+    amrex::Print() << " evolve Ferroelectric J using P\n";
+
     auto & warpx = WarpX::GetInstance();
     const int lev = 0;
+    const amrex::IntVect ng_EB_alloc = warpx.getngEB();
 
     amrex::MultiFab * jx = warpx.get_pointer_current_fp(lev, 0);
     amrex::MultiFab * jy = warpx.get_pointer_current_fp(lev, 1);
@@ -79,10 +72,6 @@ FerroE::EvolveFerroEJ (amrex::Real dt)
     amrex::MultiFab * Px = warpx.get_pointer_polarization_fp(lev, 0);
     amrex::MultiFab * Py = warpx.get_pointer_polarization_fp(lev, 1);
     amrex::MultiFab * Pz = warpx.get_pointer_polarization_fp(lev, 2);
-
-    EvolveP(dt, mu, gamma);
-
-    amrex::Print() << " evolve Ferroelectric J using P\n";
 
     // J_tot  = free electric current + polarization current (dP/dt)
 
@@ -209,7 +198,7 @@ void RK4(amrex::Real P[2], amrex::Real dt, amrex::Real mu, amrex::Real gamma, am
 
 //Evolve P : Integrate equation of motion using Forward Euler method (To Do : Upgrade to higher order integration schemes)
 void
-FerroE::EvolveP (amrex::Real dt, const amrex::Real mu, const amrex::Real gamma)
+FerroE::EvolveP (amrex::Real dt)
 {
      amrex::Print() << " evolve P \n";
      auto & warpx = WarpX::GetInstance();
@@ -250,8 +239,10 @@ FerroE::EvolveP (amrex::Real dt, const amrex::Real mu, const amrex::Real gamma)
                 }
 
                 amrex::Real Px_tmp[2] = {Px_arr(i,j,k,0), Px_arr(i,j,k,1)};
-                //forwardEuler(Px_tmp, dt, mu, gamma, Ex_eff);
-                RK4(Px_tmp, dt, mu, gamma, Ex_eff);
+                forwardEuler(Px_tmp, dt, mu, gamma, Ex_eff);
+                //RK4(Px_tmp, dt, mu, gamma, Ex_eff);
+                Px_arr(i,j,k,0) = Px_tmp[0];
+                Px_arr(i,j,k,1) = Px_tmp[1];
             }
         },
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
@@ -264,8 +255,10 @@ FerroE::EvolveP (amrex::Real dt, const amrex::Real mu, const amrex::Real gamma)
                 }
 
 	        amrex::Real Py_tmp[2] = {Py_arr(i,j,k,0), Py_arr(i,j,k,1)};
-                //forwardEuler(Py_tmp, dt, mu, gamma, Ey_eff);
-                RK4(Py_tmp, dt, mu, gamma, Ey_eff);
+                forwardEuler(Py_tmp, dt, mu, gamma, Ey_eff);
+                //RK4(Py_tmp, dt, mu, gamma, Ey_eff);
+                Py_arr(i,j,k,0) = Py_tmp[0];
+                Py_arr(i,j,k,1) = Py_tmp[1];
             }
         },
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
@@ -278,8 +271,10 @@ FerroE::EvolveP (amrex::Real dt, const amrex::Real mu, const amrex::Real gamma)
                 }
 
 	        amrex::Real Pz_tmp[2] = {Pz_arr(i,j,k,0), Pz_arr(i,j,k,1)};
-                //forwardEuler(Pz_tmp, dt, mu, gamma, Ez_eff);
-                RK4(Pz_tmp, dt, mu, gamma, Ez_eff);
+                forwardEuler(Pz_tmp, dt, mu, gamma, Ez_eff);
+                //RK4(Pz_tmp, dt, mu, gamma, Ez_eff);
+                Pz_arr(i,j,k,0) = Pz_tmp[0];
+                Pz_arr(i,j,k,1) = Pz_tmp[1];
             }
         }
     );
