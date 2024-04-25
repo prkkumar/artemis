@@ -51,6 +51,10 @@ public:
      const amrex::Real alpha_111 = 1.294e9;
      const amrex::Real alpha_112 = -1.95e9;
      const amrex::Real alpha_123 = -2.5e9;
+     const amrex::Real alpha_1111 = 3.863e10;
+     const amrex::Real alpha_1112 = 2.529e10;
+     const amrex::Real alpha_1122 = 1.637e10;
+     const amrex::Real alpha_1123 = 1.367e10;
 
 };
 
