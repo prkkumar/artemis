@@ -143,60 +143,46 @@ FerroE::InitializeFerroelectricMultiFabUsingParser (
     }
 }
 
+
 /*Evolution of the polarization P is governed by mu*d^2P/dt^2 + gamma*dP/dt = E_eff
  *Let dP/dt = v, then we need to solve the system of following two first-order ODEs
+ *dv/dt = (E_eff - gamma*v)/mu
  *dP/dt = v
- *dv/dt = (E - gamma*v)/mu
  */
-
-
-// Define the function representing the system of first-order ODEs
 AMREX_GPU_DEVICE
-void dPdt(amrex::Real P[2], amrex::Real dPdt_result[2], const amrex::Real mu, const amrex::Real gamma, amrex::Real E_eff)
+amrex::Real func(amrex::Real E_eff, amrex::Real v,  amrex::Real gamma, amrex::Real mu)
 {
-     dPdt_result[0] = P[1];
-     dPdt_result[1] = E_eff / mu - gamma * P[1] / mu;
-}
-
-// Forward Euler time integrator
-AMREX_GPU_DEVICE
-void forwardEuler(amrex::Real P[2], const amrex::Real dt, const amrex::Real mu, const amrex::Real gamma, amrex::Real E_eff)
-{
-
-     amrex::Real res_tmp[2]; // Temporary array to hold the result
-     dPdt(P, res_tmp, mu, gamma, E_eff); // Call dPdt with the temporary arrays
-     for (int n = 0; n < 2; ++n) P[n] += dt * res_tmp[n]; ;
+     return (E_eff - gamma*v) / mu;
 }
 
 // RK4 time integrator
 AMREX_GPU_DEVICE
-void RK4(amrex::Real P[2], amrex::Real dt, amrex::Real mu, amrex::Real gamma, amrex::Real E_eff) {
-    amrex::Real k1[2], k2[2], k3[2], k4[2], tmp[2];
+void update_v(amrex::Real& result, amrex::Real dt, amrex::Real E_eff, amrex::Real gamma, amrex::Real mu) 
+{
+        int use_RK4 = 1;
 
-    // Calculate k1
-    dPdt(P, k1, mu, gamma, E_eff);
-
-    // Calculate k2
-    for (int i = 0; i < 2; ++i)
-        tmp[i] = P[i] + 0.5 * dt * k1[i];
-    dPdt(tmp, k2, mu, gamma, E_eff);
-
-    // Calculate k3
-    for (int i = 0; i < 2; ++i)
-        tmp[i] = P[i] + 0.5 * dt * k2[i];
-    dPdt(tmp, k3, mu, gamma, E_eff);
-
-    // Calculate k4
-    for (int i = 0; i < 2; ++i)
-        tmp[i] = P[i] + dt * k3[i];
-    dPdt(tmp, k4, mu, gamma, E_eff);
-
-    // Update P using the weighted sum of k's
-    for (int i = 0; i < 2; ++i)
-        P[i] += dt / 6.0 * (k1[i] + 2.0 * k2[i] + 2.0 * k3[i] + k4[i]);
+        amrex::Real k1, k2, k3, k4;
+        
+        // Calculate k1
+        k1 = dt * func(E_eff, result, gamma, mu);
+        
+        // Calculate k2
+        k2 = dt * func(E_eff, result + 0.5*k1, gamma, mu);
+        
+        // Calculate k3
+        k3 = dt * func(E_eff, result + 0.5*k2, gamma, mu);
+        
+        // Calculate k4
+        k4 = dt * func(E_eff, result + k3, gamma, mu);
+       
+        if (use_RK4){
+           // Update result using weighted sum of ks
+           result += (1.0 / 6.0) * (k1 + 2.0*k2 + 2.0*k3 + k4);
+        } else {
+           result += k1; 
+        }
 }
 
-//Evolve P : Integrate equation of motion using Forward Euler method (To Do : Upgrade to higher order integration schemes)
 void
 FerroE::EvolveP (amrex::Real dt)
 {
@@ -238,11 +224,10 @@ FerroE::EvolveP (amrex::Real dt)
                    Ex_eff += compute_ex_Landau(Px_arr(i,j,k,0), Py_arr(i,j,k,0), Pz_arr(i,j,k,0));
                 }
 
-                amrex::Real Px_tmp[2] = {Px_arr(i,j,k,0), Px_arr(i,j,k,1)};
-                forwardEuler(Px_tmp, dt, mu, gamma, Ex_eff);
-                //RK4(Px_tmp, dt, mu, gamma, Ex_eff);
-                Px_arr(i,j,k,0) = Px_tmp[0];
-                Px_arr(i,j,k,1) = Px_tmp[1];
+                  //get dPx/dt using numerical integration
+                  update_v(Px_arr(i,j,k,1), dt, Ex_eff, gamma, mu);
+                  //get Px 
+                  Px_arr(i,j,k,0) += dt*Px_arr(i,j,k,1);
             }
         },
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
@@ -253,12 +238,11 @@ FerroE::EvolveP (amrex::Real dt)
                 if (include_Landau == 1){
                    Ey_eff += compute_ey_Landau(Px_arr(i,j,k,0), Py_arr(i,j,k,0), Pz_arr(i,j,k,0));
                 }
-
-	        amrex::Real Py_tmp[2] = {Py_arr(i,j,k,0), Py_arr(i,j,k,1)};
-                forwardEuler(Py_tmp, dt, mu, gamma, Ey_eff);
-                //RK4(Py_tmp, dt, mu, gamma, Ey_eff);
-                Py_arr(i,j,k,0) = Py_tmp[0];
-                Py_arr(i,j,k,1) = Py_tmp[1];
+                  
+                  //get dPy/dt using numerical integration
+                  update_v(Py_arr(i,j,k,1), dt, Ey_eff, gamma, mu);
+                  //get Py 
+                  Py_arr(i,j,k,0) += dt*Py_arr(i,j,k,1);
             }
         },
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
@@ -269,12 +253,11 @@ FerroE::EvolveP (amrex::Real dt)
                 if (include_Landau == 1){
                    Ez_eff += compute_ez_Landau(Px_arr(i,j,k,0), Py_arr(i,j,k,0), Pz_arr(i,j,k,0));
                 }
-
-	        amrex::Real Pz_tmp[2] = {Pz_arr(i,j,k,0), Pz_arr(i,j,k,1)};
-                forwardEuler(Pz_tmp, dt, mu, gamma, Ez_eff);
-                //RK4(Pz_tmp, dt, mu, gamma, Ez_eff);
-                Pz_arr(i,j,k,0) = Pz_tmp[0];
-                Pz_arr(i,j,k,1) = Pz_tmp[1];
+                  
+                  //get dPz/dt using numerical integration
+                  update_v(Pz_arr(i,j,k,1), dt, Ez_eff, gamma, mu);
+                  //get Pz 
+                  Pz_arr(i,j,k,0) += dt*Pz_arr(i,j,k,1);
             }
         }
     );
