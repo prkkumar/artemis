@@ -367,6 +367,7 @@ public:
 #endif
 #ifdef WARPX_FERROE
     int include_Landau = 1;
+    int include_grad = 0;
 #endif
     //! If true, the current is deposited on a nodal grid and then centered onto a staggered grid
     //! using finite centering of order given by #current_centering_nox, #current_centering_noy,

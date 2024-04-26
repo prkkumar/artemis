@@ -1,5 +1,6 @@
 #include "FerroE.H"
 #include "Eff_Field_Landau.H"
+#include "Eff_Field_grad.H"
 #include "FieldSolver/FiniteDifferenceSolver/MacroscopicProperties/MacroscopicProperties.H"
 #include "Utils/WarpXUtil.H"
 #include "WarpX.H"
@@ -189,7 +190,9 @@ FerroE::EvolveP (amrex::Real dt)
      amrex::Print() << " evolve P \n";
      auto & warpx = WarpX::GetInstance();
      int include_Landau = warpx.include_Landau;
+     int include_grad = warpx.include_grad;
      const int lev = 0;
+     const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> dx = warpx.Geom(lev).CellSizeArray();
 
      //Px, Py, and Pz have 2 components each. Px(i,j,k,0) is Px and Px(i,j,k,1) is dPx/dt and so on..
      amrex::MultiFab * Px = warpx.get_pointer_polarization_fp(lev, 0);
@@ -224,10 +227,14 @@ FerroE::EvolveP (amrex::Real dt)
                    Ex_eff += compute_ex_Landau(Px_arr(i,j,k,0), Py_arr(i,j,k,0), Pz_arr(i,j,k,0));
                 }
 
-                  //get dPx/dt using numerical integration
-                  update_v(Px_arr(i,j,k,1), dt, Ex_eff, gamma, mu);
-                  //get Px 
-                  Px_arr(i,j,k,0) += dt*Px_arr(i,j,k,1);
+                if (include_grad == 1){
+                   Ex_eff += G_11*DoubleDx(Px_arr, i, j, k, dx, fe_arr) + G_11*DoubleDy(Px_arr, i, j, k, dx, fe_arr) + G_11*DoubleDz(Px_arr, i, j, k, dx, fe_arr);
+                }
+
+                //get dPx/dt using numerical integration
+                update_v(Px_arr(i,j,k,1), dt, Ex_eff, gamma, mu);
+                //get Px 
+                Px_arr(i,j,k,0) += dt*Px_arr(i,j,k,1);
             }
         },
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
@@ -239,10 +246,14 @@ FerroE::EvolveP (amrex::Real dt)
                    Ey_eff += compute_ey_Landau(Px_arr(i,j,k,0), Py_arr(i,j,k,0), Pz_arr(i,j,k,0));
                 }
                   
-                  //get dPy/dt using numerical integration
-                  update_v(Py_arr(i,j,k,1), dt, Ey_eff, gamma, mu);
-                  //get Py 
-                  Py_arr(i,j,k,0) += dt*Py_arr(i,j,k,1);
+                if (include_grad == 1){
+                   Ey_eff += G_11*DoubleDx(Py_arr, i, j, k, dx, fe_arr) + G_11*DoubleDy(Py_arr, i, j, k, dx, fe_arr) + G_11*DoubleDz(Py_arr, i, j, k, dx, fe_arr);
+                }
+
+                //get dPy/dt using numerical integration
+                update_v(Py_arr(i,j,k,1), dt, Ey_eff, gamma, mu);
+                //get Py 
+                Py_arr(i,j,k,0) += dt*Py_arr(i,j,k,1);
             }
         },
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
@@ -254,10 +265,14 @@ FerroE::EvolveP (amrex::Real dt)
                    Ez_eff += compute_ez_Landau(Px_arr(i,j,k,0), Py_arr(i,j,k,0), Pz_arr(i,j,k,0));
                 }
                   
-                  //get dPz/dt using numerical integration
-                  update_v(Pz_arr(i,j,k,1), dt, Ez_eff, gamma, mu);
-                  //get Pz 
-                  Pz_arr(i,j,k,0) += dt*Pz_arr(i,j,k,1);
+                if (include_grad == 1){
+                   Ez_eff += G_11*DoubleDx(Pz_arr, i, j, k, dx, fe_arr) + G_11*DoubleDy(Pz_arr, i, j, k, dx, fe_arr) + G_11*DoubleDz(Pz_arr, i, j, k, dx, fe_arr);
+                }
+
+                //get dPz/dt using numerical integration
+                update_v(Pz_arr(i,j,k,1), dt, Ez_eff, gamma, mu);
+                //get Pz 
+                Pz_arr(i,j,k,0) += dt*Pz_arr(i,j,k,1);
             }
         }
     );

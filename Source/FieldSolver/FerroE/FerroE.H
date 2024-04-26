@@ -56,6 +56,8 @@ public:
      const amrex::Real alpha_1122 = 1.637e10;
      const amrex::Real alpha_1123 = 1.367e10;
 
+     //Gradient energy coefficients
+     const amrex::Real G_11 = 5.1e-10;
 };
 
 
