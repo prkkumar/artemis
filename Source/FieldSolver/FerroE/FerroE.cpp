@@ -1,6 +1,6 @@
 #include "FerroE.H"
 #include "Eff_Field_Landau.H"
-#include "Eff_Field_grad.H"
+#include "Eff_Field_Grad.H"
 #include "FieldSolver/FiniteDifferenceSolver/MacroscopicProperties/MacroscopicProperties.H"
 #include "Utils/WarpXUtil.H"
 #include "WarpX.H"
@@ -31,6 +31,8 @@ void
 FerroE::ReadParameters ()
 {
     amrex::ParmParse pp_ferroe("ferroe");
+    pp_ferroe.query("include_Landau", include_Landau);
+    pp_ferroe.query("include_grad", include_grad);
 
     utils::parser::Store_parserString(pp_ferroe, "ferroelectric_function(x,y,z)", m_str_ferroelectric_function);
     m_ferroelectric_parser = std::make_unique<amrex::Parser>(
@@ -189,8 +191,8 @@ FerroE::EvolveP (amrex::Real dt)
 {
      amrex::Print() << " evolve P \n";
      auto & warpx = WarpX::GetInstance();
-     int include_Landau = warpx.include_Landau;
-     int include_grad = warpx.include_grad;
+//     int include_Landau = ferroe.include_Landau;
+//     int include_grad = ferroe.include_grad;
      const int lev = 0;
      const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> dx = warpx.Geom(lev).CellSizeArray();
 
@@ -216,7 +218,7 @@ FerroE::EvolveP (amrex::Real dt)
         amrex::Box const& tpy = mfi.tilebox(Py->ixType().toIntVect());
         amrex::Box const& tpz = mfi.tilebox(Pz->ixType().toIntVect());
 
-
+    amrex::Print() << "include_Landau = " << include_Landau << "\n";
     amrex::ParallelFor(tpx, tpy, tpz,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
             if (fe_arr(i,j,k)==1 and fe_arr(i+1,j,k)==1) {

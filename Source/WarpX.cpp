@@ -1071,11 +1071,6 @@ WarpX::ReadParameters ()
         pp_warpx.query("mag_LLG_anisotropy_coupling",mag_LLG_anisotropy_coupling);
 #endif
 
-#ifdef WARPX_FERROE
-        // include Landau free energy contribution to effective field
-        pp_warpx.query("include_Landau", include_Landau);
-#endif
-
 #ifdef WARPX_DIM_RZ
         WARPX_ALWAYS_ASSERT_WITH_MESSAGE( isAnyBoundaryPML() == false || electromagnetic_solver_id == ElectromagneticSolverAlgo::PSATD,
             "PML are not implemented in RZ geometry with FDTD; please set a different boundary condition using boundary.field_lo and boundary.field_hi.");
