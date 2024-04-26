@@ -191,8 +191,6 @@ FerroE::EvolveP (amrex::Real dt)
 {
      amrex::Print() << " evolve P \n";
      auto & warpx = WarpX::GetInstance();
-//     int include_Landau = ferroe.include_Landau;
-//     int include_grad = ferroe.include_grad;
      const int lev = 0;
      const amrex::GpuArray<amrex::Real, AMREX_SPACEDIM> dx = warpx.Geom(lev).CellSizeArray();
 
@@ -218,7 +216,6 @@ FerroE::EvolveP (amrex::Real dt)
         amrex::Box const& tpy = mfi.tilebox(Py->ixType().toIntVect());
         amrex::Box const& tpz = mfi.tilebox(Pz->ixType().toIntVect());
 
-    amrex::Print() << "include_Landau = " << include_Landau << "\n";
     amrex::ParallelFor(tpx, tpy, tpz,
         [=] AMREX_GPU_DEVICE (int i, int j, int k) {
             if (fe_arr(i,j,k)==1 and fe_arr(i+1,j,k)==1) {
