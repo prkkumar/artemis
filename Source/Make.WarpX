@@ -74,7 +74,7 @@ ifeq ($(USE_LLG),TRUE)
 endif
 
 ifeq ($(USE_FERROE),TRUE)
-  USERSuffix := $(USERSuffix).FERRO
+  USERSuffix := $(USERSuffix).FERROE
   DEFINES += -DWARPX_FERROE
 endif
 
